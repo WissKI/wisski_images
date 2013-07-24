@@ -1,0 +1,8 @@
+; $Id: 
+name = WissKI Image Module
+description = Adds images to wisski nodes and an image block
+package = WissKI
+version = 1.0
+core = 6.x
+dependencies[] = wisski_pathbuilder
+
