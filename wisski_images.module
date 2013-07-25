@@ -137,14 +137,14 @@ function _wisski_images_getImages($node, $images = 0) {
 
 
 function _wisski_images_make_image_string($node, $images, $pics = array()) {
-    // this is necessary for file handling with umlauts like äöü
-    setlocale(LC_CTYPE, "de_DE.UTF-8");
+  // this is necessary for file handling with umlauts like äöü
+  setlocale(LC_CTYPE, "de_DE.UTF-8");
     
-    if(!is_array($pics) || empty($pics))
-      return "";
+  if(!is_array($pics) || empty($pics))
+    return "";
     
-    foreach($pics as $pic) {
-      $pic = $pic['out'];
+  foreach($pics as $pic) {
+    $pic = $pic['out'];
           
     
     if(trim($pic) == "")
@@ -295,21 +295,28 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
 
       $dst = imagecache_create_path($presetname, $newname . '.' . $extension);
 
+      $exifdata = array();
+      $exifdata['fieldset'] = array("#type" => "fieldset", "#title" => t("Exif Metadata"), "#collapsible" => TRUE, "#collapsed" => TRUE, "#attributes" => array("class" => "wisski-images-exif-fieldset"));
+      $exifdata['fieldset']['content'] = array('#value' => wisski_images_render_exif(exif_read_data($pic)));
+
+      $exif = drupal_render($exifdata);
+
       if (is_file($dst) || @imagecache_build_derivative($preset['actions'], $orig, $dst)) {
         global $base_path;
         if (is_file($orig)) {
           if($force_download == 1) {
-            $imagestr .= '<li><a href="' . $base_path . $orig . '"><img src="' . $base_path . $dst . '"/></a></li>';
+            $imagestr .= '<li><a href="' . $base_path . $orig . '"><img src="' . $base_path . $dst . '"/></a>' . $exif . '</li>';
           } else if(!empty($pyr) && module_exists('wisski_iip')) {
-            $imagestr .=  '<li><a href="' . $base_url . '/node/' . arg(1) . '/zoom?path=' . rawurlencode(getcwd() . '/' . $pyr) . '"><img src="' . $base_path . $dst . '"/></a></li>';
-          } else
-            $imagestr .= '<li><a href="' . $base_path . $orig . '" class="wisski-image"><img src="' . $base_path . $dst . '"/></a></li>';
+            $imagestr .=  '<li><a href="' . $base_url . '/node/' . arg(1) . '/zoom?path=' . rawurlencode(getcwd() . '/' . $pyr) . '"><img src="' . $base_path . $dst . '"/></a>' . $exif . '</li>';
+          } else {
+            $imagestr .= '<li><a href="' . $base_path . $orig . '" class="wisski-image"><img src="' . $base_path . $dst . '"/></a>' . $exif . '</li>';
+          }
         } else {          
-          $imagestr .= '<li><a href="' . $base_path . $dst . '" class="wisski-image"><img src="' . $base_path . $dst . '"/></a></li>';
+          $imagestr .= '<li><a href="' . $base_path . $dst . '" class="wisski-image"><img src="' . $base_path . $dst . '"/></a>' . $exif . '</li>';
         }
       } else {
 	drupal_set_message("The image with URL " . $pic . " could not be downloaded. Probably the link is wrong.", "error");
-        $imagestr .= '<li><a href="' . $pic . '" class="wisski-image"><img src="' . $pic . '"/></a></li>';
+        $imagestr .= '<li><a href="' . $pic . '" class="wisski-image"><img src="' . $pic . '"/></a>' . $exif . '</li>';
       }
     } else {
       $pics = getimagesize($pic);
@@ -322,9 +329,9 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
       $factor = $factorx;
       $imagestr .= '<li><a class="th" href="javascript:void(0);" title="' . $pic . '" onclick="window.open(\'' .
                    $pic . '\', \'\', \'height=' . $pics[1] . ',width=' . $pics[0] . '\');">' .
-                   '<img src="' . $pic . '" alt="' . $pic . '"/></a></li>'; //width="' . round($pics[0]*$factor) . '"></a>';
+                   '<img src="' . $pic . '" alt="' . $pic . '"/></a>' . $exif . '</li>'; //width="' . round($pics[0]*$factor) . '"></a>';
     }
-
+    
   }
   
 
@@ -365,6 +372,28 @@ function wisski_images_imagecache_default_presets() {
   
   
   return $presets;
+}
+
+function wisski_images_render_exif($exif) {
+  $exifstr = "<ul class='wisski-images-exif-ul'>";
+  foreach($exif as $key => $value) {
+    $exifstr .= "<li class='wisski-images-exif-li'>";
+    if(is_array($value)) {
+      $exifdata = array();
+      $exifdata['fieldset'] = array("#type" => "fieldset", "#title" => t($key), "#collapsible" => TRUE, "#collapsed" => TRUE, '#attributes' => array('class' => 'wisski-images-exif-fieldset'));
+      $exifdata['fieldset']['content'] = array('#value' => t(wisski_images_render_exif($value)));
+      
+      $exifstr .= drupal_render($exifdata);
+      
+    } else {
+      $exifstr .= t($key) . ': ' . t($value);
+    }
+    
+    $exifstr .= "</li>";
+  }
+  $exifstr .= "</ul>";
+  
+  return $exifstr;
 }
 
 function wisski_images_imagecache_create_url($presetname, $filepath, $bypass_browser_cache = FALSE, $absolute = TRUE) {
