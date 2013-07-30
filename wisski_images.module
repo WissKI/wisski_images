@@ -70,14 +70,14 @@ function wisski_images_getImages($node, $images = 0) {
   $images_from_db = array();
 
   while($image_from_db = db_fetch_array($result))
-    $images_from_db[] = array('out' => $image_from_db['title'], 'subtitle' => $image_from_db['subtitle']);
+    $images_from_db[] = array('out' => $image_from_db['imageurl'], 'subtitle' => $image_from_db['subtitle']);
   
   if(empty($images_from_db)) {
     $images_from_db = _wisski_images_getImages($node);
     
     if(!empty($images_from_db))
       foreach($images_from_db as $pic) {
-//        db_query("INSERT INTO {wisski_image_cache} (nodeurl, subtitle, imageurl) VALUES ('" . mysql_real_escape_string($title) . "', '" . mysql_real_escape_string($pic['subtitle']) . "', '" . mysql_real_escape_string($pic['out']) . "')");
+        db_query("INSERT INTO {wisski_image_cache} (nodeurl, subtitle, imageurl) VALUES ('" . mysql_real_escape_string($title) . "', '" . mysql_real_escape_string($pic['subtitle']) . "', '" . mysql_real_escape_string($pic['out']) . "')");
       }
   }
 
