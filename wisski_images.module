@@ -142,21 +142,28 @@ function _wisski_images_getImages($node, $images = 0) {
       foreach($subgroups as $localkey => $imagegroup) {
       
         $image_sparql = wisski_pathbuilder_get_sparql($imagegroup, $total_condition, FALSE, 0, TRUE, array("?out"));
-
-        $subtitle_sparql = wisski_pathbuilder_get_sparql($subtitles[$parentgroup][$localkey], $total_condition, FALSE, 0, TRUE, array("?out"));
-        $subtitle_sparql = str_replace("?out", "?subtitle", $subtitle_sparql);    
-
+        $subtitle_sparql = "";
+        
+        if(!empty($subtitles[$parentgroup][$localkey])) {
+          $subtitle_sparql = wisski_pathbuilder_get_sparql($subtitles[$parentgroup][$localkey], $total_condition, FALSE, 0, TRUE, array("?out"));
+          $subtitle_sparql = str_replace("?out", "?subtitle", $subtitle_sparql);    
+        }
+        
         if(empty($image_sparql))
           return;
   
         if($images > 0) { 
           $image_sparql .= " LIMIT " . $images - count($rows);
-          $subtitle_sparql .= " LIMIT " . $images - count($rows);
+          if(!empty($subtitle_sparql))
+            $subtitle_sparql .= " LIMIT " . $images - count($rows);
         }
 
         $image_rows =  wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($image_sparql, 'rows');
 
-        $subtitle_rows = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($subtitle_sparql, 'rows');
+        if(!empty($subtitle_sparql))
+          $subtitle_rows = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($subtitle_sparql, 'rows');
+        else
+          $subtitle_rows = array();
         
         foreach($image_rows as $row_key => $row_value) {
           foreach($subtitle_rows as $subtitle_row) {
@@ -189,7 +196,11 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
     
   foreach($pics as $one_pic) {
     $pic = $one_pic['out'];
-    $subtitle = $one_pic['subtitle'];
+    if(!empty($one_pic['subtitle']))
+      $subtitle = $one_pic['subtitle'];
+    else
+      $subtitle = "";
+      
     if(!empty($subtitle))      
       $subtitle = t("Image ") . $imgcount++ . ": " . $subtitle;
     if(trim($pic) == "")
@@ -342,13 +353,7 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
       
       $exif = "";
       if(user_access('wisski access exif')) {
-        // make exif metadata dropdown field
-        $exifdata = array();
-      
-        $exifdata['fieldset'] = array("#type" => "fieldset", "#title" => t("Exif Metadata"), "#collapsible" => TRUE, "#collapsed" => TRUE, "#attributes" => array("class" => "wisski-images-exif-fieldset"));
-        $exifdata['fieldset']['content'] = array('#type' => 'markup', '#value' => wisski_images_render_exif(exif_read_data($pic)));
-
-        $exif = drupal_render($exifdata);
+        $exif = wisski_images_render_exifdata($pic);
       }
       
       $info = array();
@@ -358,22 +363,7 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
       
       $iptc = "";  
       if(user_access('wisski access iptc')) {
-            
-        $iptcdata = "";
-        $iptc = "";
-        $iptcparseddata = "";
-      
-        // get the iptc data
-        if(isset($info['APP13'])) {
-          $iptcparseddata = iptcparse($info['APP13']);
-        }
-
-        // is there something?
-        if(!empty($iptcparseddata)) {     
-          $iptcdata['fieldset'] = array("#type" => "fieldset", "#title" => t("IPTC Metadata"), "#collapsible" => TRUE, "#collapsed" => TRUE, "#attributes" => array("class" => "wisski-images-exif-fieldset"));
-          $iptcdata['fieldset']['content'] = array('#type' => 'markup', '#value' => wisski_images_render_iptc($iptcparseddata)); 
-          $iptc = drupal_render($iptcdata);
-        }
+        $iptc = wisski_images_render_iptcdata($info);
       }
 
       if (is_file($dst) || @imagecache_build_derivative($preset['actions'], $orig, $dst)) {
@@ -397,13 +387,7 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
 
       $exif = "";
       if(user_access('wisski access exif')) {
-        // make exif metadata dropdown field
-        $exifdata = array();
-      
-        $exifdata['fieldset'] = array("#type" => "fieldset", "#title" => t("Exif Metadata"), "#collapsible" => TRUE, "#collapsed" => TRUE, "#attributes" => array("class" => "wisski-images-exif-fieldset"));
-        $exifdata['fieldset']['content'] = array('#type' => 'markup', '#value' => wisski_images_render_exif(exif_read_data($pic)));
-
-        $exif = drupal_render($exifdata);
+        $exif = wisski_images_render_exifdata($pic);
       }
       
       $info = array();
@@ -413,22 +397,7 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
       
       $iptc = "";  
       if(user_access('wisski access iptc')) {
-            
-        $iptcdata = "";
-        $iptc = "";
-        $iptcparseddata = "";
-      
-        // get the iptc data
-        if(isset($info['APP13'])) {
-          $iptcparseddata = iptcparse($info['APP13']);
-        }
-
-        // is there something?
-        if(!empty($iptcparseddata)) {     
-          $iptcdata['fieldset'] = array("#type" => "fieldset", "#title" => t("IPTC Metadata"), "#collapsible" => TRUE, "#collapsed" => TRUE, "#attributes" => array("class" => "wisski-images-exif-fieldset"));
-          $iptcdata['fieldset']['content'] = array('#type' => 'markup', '#value' => wisski_images_render_iptc($iptcparseddata)); 
-          $iptc = drupal_render($iptcdata);
-        }
+        $iptc = wisski_images_render_iptcdata($info);
       }
 
       if($pics == 0) {
@@ -450,6 +419,38 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
     return '<ul class="clearing-thumbs" data-orbit data-clearing>' . $imagestr . '</ul>';
   else
     return "";
+}
+
+function wisski_images_render_iptcdata($info) {
+  $iptcdata = "";
+  $iptc = "";
+  $iptcparseddata = "";
+      
+  // get the iptc data
+  if(isset($info['APP13'])) {
+    $iptcparseddata = iptcparse($info['APP13']);
+  }
+
+  // is there something?
+  if(!empty($iptcparseddata)) {     
+    $iptcdata['fieldset'] = array("#type" => "fieldset", "#title" => t("IPTC Metadata"), "#collapsible" => TRUE, "#collapsed" => TRUE, "#attributes" => array("class" => "wisski-images-exif-fieldset"));
+    $iptcdata['fieldset']['content'] = array('#type' => 'markup', '#value' => wisski_images_render_iptc($iptcparseddata)); 
+    $iptc = drupal_render($iptcdata);
+  }
+  
+  return $iptc;
+}
+
+function wisski_images_render_exifdata($pic) {
+  // make exif metadata dropdown field
+  $exifdata = array();
+  
+  $exifdata['fieldset'] = array("#type" => "fieldset", "#title" => t("Exif Metadata"), "#collapsible" => TRUE, "#collapsed" => TRUE, "#attributes" => array("class" => "wisski-images-exif-fieldset"));
+  $read_exif = @exif_read_data($pic);
+  $exifdata['fieldset']['content'] = array('#type' => 'markup', '#value' => wisski_images_render_exif($read_exif));
+
+  $exif = drupal_render($exifdata);
+  return $exif;
 }
 
 function wisski_images_imagecache_default_presets() {
@@ -490,13 +491,13 @@ function wisski_images_render_exif($exif) {
   foreach($exif as $key => $value) {
     if(is_array($value)) {
       $exifdata = array();
-      $exifdata['fieldset'] = array("#type" => "fieldset", "#title" => t($key), "#collapsible" => TRUE, "#collapsed" => TRUE, '#attributes' => array('class' => 'wisski-images-exif-fieldset'));
-      $exifdata['fieldset']['content'] = array('#type' => 'markup', '#value' => t(wisski_images_render_exif($value)));
+      $exifdata['fieldset'] = array("#type" => "fieldset", "#title" => t(htmlentities(utf8_encode($key))), "#collapsible" => TRUE, "#collapsed" => TRUE, '#attributes' => array('class' => 'wisski-images-exif-fieldset'));
+      $exifdata['fieldset']['content'] = array('#type' => 'markup', '#value' => wisski_images_render_exif($value));
       
       $exifstr .= drupal_render($exifdata);
       
     } else {
-      $exifstr .= '<div class="wki-data-item"><div class="wki-data-label">' . t($key) . '</div><div class="wki-data-value">' . t($value) . '</div></div>';
+      $exifstr .= '<div class="wki-data-item"><div class="wki-data-label">' . t(htmlentities(utf8_encode($key))) . '</div><div class="wki-data-value">' . t(htmlentities(utf8_encode($value))) . '</div></div>';
     }
   }
 
@@ -514,11 +515,11 @@ function wisski_images_render_iptc($iptc) {
     }
     
     $all_empty = true;
-    $iptcpartstr = '<div class="wki-data-item"><div class="wki-data-label">' . t($key) . '</div>';
+    $iptcpartstr = '<div class="wki-data-item"><div class="wki-data-label">' . t(htmlentities(utf8_encode($key))) . '</div>';
     foreach($values as $value) {
       $value = trim($value);
       if(!empty($value)) {
-        $iptcpartstr .= '<div class="wki-data-value">' . t(utf8_encode($value)) . '</div>';
+        $iptcpartstr .= '<div class="wki-data-value">' . t(htmlentities(utf8_encode($value))) . '</div>';
         $all_empty = false;
       }
     }
