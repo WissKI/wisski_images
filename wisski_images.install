@@ -1,0 +1,64 @@
+<?php
+
+/**
+ * Implementation of hook_install().
+ */
+function wisski_images_install() {
+  // Create tables.
+  drupal_install_schema('wisski_images');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function wisski_images_uninstall() {
+  // Remove tables.
+  drupal_uninstall_schema('wisski_images');
+
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+function wisski_images_schema() {
+  $schema['wisski_image_cache'] = array(
+    'description' => 'This table caches the rather complex path to the images of all nodes.',
+
+    'fields' => array(
+
+      'id' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+
+        'description' => 'The id of the cached item.',
+      ),
+
+      'nodeurl' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => true,
+        'description' => 'The uri of the node.',
+      ),
+
+      'subtitle' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => true,
+        'description' => 'The subtitle for the image.',
+      ),
+
+      'imageurl' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => true,
+        'description' => 'The image of the node.',
+      ),
+    ), 
+    'primary key' => array('id'),
+    'indexes' => array('nodeurl' => array('nodeurl')),
+
+  );
+
+  return $schema;
+}
+
