@@ -433,9 +433,13 @@ function wisski_images_render_iptcdata($info) {
 
   // is there something?
   if(!empty($iptcparseddata)) {     
-    $iptcdata['fieldset'] = array("#type" => "fieldset", "#title" => t("IPTC Metadata"), "#collapsible" => TRUE, "#collapsed" => TRUE, "#attributes" => array("class" => "wisski-images-exif-fieldset"));
-    $iptcdata['fieldset']['content'] = array('#type' => 'markup', '#value' => wisski_images_render_iptc($iptcparseddata)); 
-    $iptc = drupal_render($iptcdata);
+    $str = wisski_images_render_iptc($iptcparseddata);
+    
+    if(!empty($str)) {
+      $iptcdata['fieldset'] = array("#type" => "fieldset", "#title" => t("IPTC Metadata"), "#collapsible" => TRUE, "#collapsed" => TRUE, "#attributes" => array("class" => "wisski-images-exif-fieldset"));
+      $iptcdata['fieldset']['content'] = array('#type' => 'markup', '#value' => $str); 
+      $iptc = drupal_render($iptcdata);
+    }
   }
   
   return $iptc;
@@ -488,6 +492,9 @@ function wisski_images_imagecache_default_presets() {
 
 function wisski_images_render_exif($exif) {
   $exifstr = "";
+  if(empty($exif))
+    return "";
+  
   foreach($exif as $key => $value) {
     if(is_array($value)) {
       $exifdata = array();
@@ -506,7 +513,11 @@ function wisski_images_render_exif($exif) {
 
 function wisski_images_render_iptc($iptc) {
   $iptcstr = "";
+  
+  if(empty($iptc))
+    return "";
   unset($iptc['2#000']);
+  
   foreach($iptc as $key => $values) {
     $iptcfieldnames = array('2#105' => 'title', '2#005' => 'documentTitle', '2#120' => 'description', '2#122' => 'descriptionAuthor', '2#080' => 'author', '2#085' => 'authorTitle', '2#005' => 'documentTitle', '2#116' => 'copyright', '2#025' => 'keywords', '2#015' => 'category', '2#090' => 'city', '2#095' => 'state', '2#101' => 'country', '2#040' => 'instruction', '2#055' => 'creationTime');     
     
