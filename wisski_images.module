@@ -362,7 +362,7 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
       $dst = imagecache_create_path($presetname, $newname . '.' . $extension);
       
       $exif = "";
-      if(user_access('wisski access exif')) {
+      if(user_access('wisski access exif') && variable_get('wisski_images_show_exif', FALSE)) {
         $exif = wisski_images_render_exifdata($pic);
       }
       
@@ -372,7 +372,7 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
       
       
       $iptc = "";  
-      if(user_access('wisski access iptc')) {
+      if(user_access('wisski access iptc') && variable_get('wisski_images_show_iptc', 0)) {
         $iptc = wisski_images_render_iptcdata($info);
       }
 
@@ -396,7 +396,7 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
     } else { // no imagecache?
 
       $exif = "";
-      if(user_access('wisski access exif')) {
+      if(user_access('wisski access exif') && variable_get('wisski_images_show_exif', FALSE) ) {
         $exif = wisski_images_render_exifdata($pic);
       }
       
@@ -406,7 +406,7 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
       
       
       $iptc = "";  
-      if(user_access('wisski access iptc')) {
+      if(user_access('wisski access iptc') && variable_get('wisski_images_show_iptc', 0)) {
         $iptc = wisski_images_render_iptcdata($info);
       }
 
