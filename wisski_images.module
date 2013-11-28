@@ -63,9 +63,9 @@ function wisski_images_getImages($node, $images = 0) {
     $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
 
   if($images)
-    $result = db_query("SELECT imageurl, subtitle FROM {wisski_image_cache} INNER JOIN {wisski_weight} ON value = imageurl WHERE nodeurl = '" . $title . "' AND nid = '" . arg(1) . "' ORDER BY weight ASC LIMIT $images");
+    $result = db_query("SELECT imageurl, subtitle FROM {wisski_image_cache} LEFT JOIN {wisski_weight} ON value = imageurl AND nodeurl = title WHERE nodeurl = '" . $title . "' GROUP BY imageurl ORDER BY weight ASC LIMIT $images");
   else
-    $result = db_query("SELECT imageurl, subtitle FROM {wisski_image_cache} INNER JOIN {wisski_weight} ON value = imageurl WHERE nodeurl = '" . $title . "' AND nid = '" . arg(1) . "' ORDER BY weight ASC");
+    $result = db_query("SELECT imageurl, subtitle FROM {wisski_image_cache} LEFT JOIN {wisski_weight} ON value = imageurl AND nodeurl = title WHERE nodeurl = '" . $title . "' GROUP BY imageurl ORDER BY weight ASC");
   
   $images_from_db = array();
 
@@ -81,15 +81,17 @@ function wisski_images_getImages($node, $images = 0) {
       }
   
     if($images)
-      $result = db_query("SELECT imageurl, subtitle FROM {wisski_image_cache} INNER JOIN {wisski_weight} ON value = imageurl WHERE nodeurl = '" . $title . "' AND nid = '" . arg(1) . "' ORDER BY weight ASC LIMIT $images");
+      $result = db_query("SELECT imageurl, subtitle FROM {wisski_image_cache} LEFT JOIN {wisski_weight} ON value = imageurl AND nodeurl = title WHERE nodeurl = '" . $title . "' GROUP BY imageurl ORDER BY weight ASC LIMIT $images");
     else
-      $result = db_query("SELECT imageurl, subtitle FROM {wisski_image_cache} INNER JOIN {wisski_weight} ON value = imageurl WHERE nodeurl = '" . $title . "' AND nid = '" . arg(1) . "' ORDER BY weight ASC");
+      $result = db_query("SELECT imageurl, subtitle FROM {wisski_image_cache} LEFT JOIN {wisski_weight} ON value = imageurl AND nodeurl = title WHERE nodeurl = '" . $title . "' GROUP BY imageurl ORDER BY weight ASC");
   
     $images_from_db = array();
     while($image_from_db = db_fetch_array($result))
       $images_from_db[] = array('out' => $image_from_db['imageurl'], 'subtitle' => $image_from_db['subtitle']);
   
   }  
+  
+  //drupal_set_message(serialize($images_from_db));
 
   return _wisski_images_make_image_string($node, $images, $images_from_db);
 }
