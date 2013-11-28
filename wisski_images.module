@@ -63,9 +63,9 @@ function wisski_images_getImages($node, $images = 0) {
     $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
 
   if($images)
-    $result = db_query("SELECT imageurl, subtitle FROM {wisski_image_cache} WHERE nodeurl = '" . $title . "' LIMIT $images");
+    $result = db_query("SELECT imageurl, subtitle FROM {wisski_image_cache} INNER JOIN {wisski_weight} ON value = imageurl WHERE nodeurl = '" . $title . "' AND nid = '" . arg(1) . "' ORDER BY weight ASC LIMIT $images");
   else
-    $result = db_query("SELECT imageurl, subtitle FROM {wisski_image_cache} WHERE nodeurl = '" . $title . "'");
+    $result = db_query("SELECT imageurl, subtitle FROM {wisski_image_cache} INNER JOIN {wisski_weight} ON value = imageurl WHERE nodeurl = '" . $title . "' AND nid = '" . arg(1) . "' ORDER BY weight ASC");
   
   $images_from_db = array();
 
@@ -79,7 +79,17 @@ function wisski_images_getImages($node, $images = 0) {
       foreach($images_from_db as $pic) {
         db_query("INSERT INTO {wisski_image_cache} (nodeurl, subtitle, imageurl) VALUES ('" . mysql_real_escape_string($title) . "', '" . mysql_real_escape_string($pic['subtitle']) . "', '" . mysql_real_escape_string($pic['out']) . "')");
       }
-  }
+  
+    if($images)
+      $result = db_query("SELECT imageurl, subtitle FROM {wisski_image_cache} INNER JOIN {wisski_weight} ON value = imageurl WHERE nodeurl = '" . $title . "' AND nid = '" . arg(1) . "' ORDER BY weight ASC LIMIT $images");
+    else
+      $result = db_query("SELECT imageurl, subtitle FROM {wisski_image_cache} INNER JOIN {wisski_weight} ON value = imageurl WHERE nodeurl = '" . $title . "' AND nid = '" . arg(1) . "' ORDER BY weight ASC");
+  
+    $images_from_db = array();
+    while($image_from_db = db_fetch_array($result))
+      $images_from_db[] = array('out' => $image_from_db['imageurl'], 'subtitle' => $image_from_db['subtitle']);
+  
+  }  
 
   return _wisski_images_make_image_string($node, $images, $images_from_db);
 }
