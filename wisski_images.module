@@ -120,10 +120,10 @@ function _wisski_images_getImages($node, $images = 0) {
   
   foreach($allgroups as $imagegroup) {
     $data = wisski_pathbuilder_getPathData($imagegroup);
-    if($data['fieldtype'] == "images") {
+    if($data['fieldtype'] == "images" && $data['enabled']) {
       $imagegroups[$data['group_id']][] = $imagegroup;
     }
-    if($data['fieldtype'] == "subtitle") {
+    if($data['fieldtype'] == "subtitle" && $data['enabled']) {
       $subtitles[$data['group_id']][] = $imagegroup;
     }
 
@@ -184,7 +184,7 @@ function _wisski_images_getImages($node, $images = 0) {
 
         $rows = array_merge($rows, $image_rows);
 
-        if(count($rows) == $images)
+        if($images != 0 && count($rows) == $images)
           break;
       }
     }
