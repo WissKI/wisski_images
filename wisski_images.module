@@ -369,12 +369,11 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
       }
       
       $info = array();
-      // make iptc metadata fieldset
-      $pics = getimagesize($pic, $info);
-      
-      
+       
       $iptc = "";  
       if(user_access('wisski access iptc') && variable_get('wisski_images_show_iptc', 0)) {
+        // make iptc metadata fieldset
+        $pics = getimagesize($pic, $info);
         $iptc = wisski_images_render_iptcdata($info);
       }
 
