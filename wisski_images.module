@@ -237,14 +237,14 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
       // check if pyramidal imaging should be done
       $pyr = 0;
       
+      // file name for the local copy of the original
+      $newfile = $newname . '_orig.' . $extension;
+      
       // in case of pdf force download, but the thumbnail has to be jpg
       if($extension == "pdf") {
         $force_download = 1;
         $extension = "jpg";
       }
-
-      // file name for the local copy of the original
-      $newfile = $newname . '_orig.' . $extension;
         
       // get the path to it
       $orig = imagecache_create_path('wisski_original', $newfile);
@@ -776,8 +776,8 @@ function wisski_images_rescue_values($form, &$form_state) {
     $form_state['wisskiValues']['old_values'] = $form_state['values']['defaults'];
   }
   
-  if(empty($form_state['wisskiValues']['paths'])) {
-    $form_state['wisskiValues']['paths'] = $form_state['values']['paths'];
+  if(empty($form_state['wisskiValues']['old_paths'])) {
+    $form_state['wisskiValues']['old_paths'] = $form_state['values']['old_paths'];
   }
   
 }
