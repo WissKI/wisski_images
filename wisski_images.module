@@ -8,6 +8,30 @@ function wisski_images_perm() {
 }
 
 
+function wisski_images_menu() {
+  $items['wisski/clear_image_cache'] = array(
+    'title' => 'Clear image cache',
+    'page callback' => '_wisski_images_clear_cache',
+    'access arguments' => array('wisski administrate page'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+
+function _wisski_images_clear_cache() {
+  
+  if (db_query('TRUNCATE TABLE {wisski_image_cache}') !== FALSE) {
+    drupal_set_message(t('Image cache cleared'));
+  } else {
+    drupal_set_message(t('Image cache cleared'), 'error');
+  }
+
+  drupal_goto('<front>');
+
+}
+
+
 function wisski_images_block($op = 'list', $delta = 0, $edit = array()) {
   if ($op == "list") {
     // Generate listing of blocks from this module, for the admin/block page
@@ -71,7 +95,7 @@ function wisski_images_getImages($node, $images = 0) {
 
   while($image_from_db = db_fetch_array($result))
     $images_from_db[] = array('out' => $image_from_db['imageurl'], 'subtitle' => $image_from_db['subtitle']);
-  
+ 
   if(empty($images_from_db)) {
     $images_from_db = _wisski_images_getImages($node);
     
@@ -200,6 +224,8 @@ function _wisski_images_getImages($node, $images = 0) {
 function _wisski_images_make_image_string($node, $images, $pics = array()) {
   // this is necessary for file handling with umlauts like äöü
   setlocale(LC_CTYPE, "de_DE.UTF-8");
+  
+  global $base_url, $base_root, $base_path;
     
   if(!is_array($pics) || empty($pics))
     return "";
@@ -236,104 +262,74 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
       
       // check if pyramidal imaging should be done
       $pyr = 0;
-      
-      // file name for the local copy of the original
-      $newfile = $newname . '_orig.' . $extension;
-      
+
       // in case of pdf force download, but the thumbnail has to be jpg
       if($extension == "pdf") {
         $force_download = 1;
         $extension = "jpg";
       }
-        
-      // get the path to it
-      $orig = imagecache_create_path('wisski_original', $newfile);
-      $preset_orig = imagecache_preset_by_name('wisski_original');
+      
+      $make_local_copy = variable_get('wisski_images_make_local_copy', TRUE);
 
-      // check if dir exists, otherwise create it!
-      $dir = dirname($orig);
-      if (!file_check_directory($dir, FILE_CREATE_DIRECTORY) && !mkdir($dir, 0775, TRUE)) {
-        drupal_set_message("Could not provide directory for pyramidal tifs", "error");
-        return; 
-      }
+      if (!$make_local_copy) {
+        // we don't want to make local copies of the images
+        // except for thumbnails
+        $orig = $pic;
+        $pyr_url = $pic;
 
-      global $base_url;
+      } else {
+        // make local copies of the images
 
-      // if it is not there already, get it
-      if(!is_file($orig)) {
-        $localpath = str_replace($base_url . '/', "", $pic);
-        // it is not locally available
-        if(!realpath($localpath)) {
-          $fh = @fopen($pic, "rb");
-           
-          if($fh) {
-            $fw = fopen($orig, "w+");
-            while(!feof($fh)) {
-              fwrite($fw, fread($fh, 1024 * 8 ), 1024 * 8 );
-            }
-          } else {
-            drupal_set_message(t("The file $pic could not be found. Please check the URL."), "error");
-            continue;
-          }
+        // file name for the local copy of the original
+        $newfile = $newname . '_orig.' . $extension;
+          
+        // get the path to it
+        $orig = imagecache_create_path('wisski_original', $newfile);
+        $preset_orig = imagecache_preset_by_name('wisski_original');
 
-        } else { // it is already there, just work with it!
-          $orig = $localpath;
+        // check if dir exists, otherwise create it!
+        $dir = dirname($orig);
+        if (!file_check_directory($dir, FILE_CREATE_DIRECTORY) && !mkdir($dir, 0775, TRUE)) {
+          drupal_set_message("Could not provide directory for pyramidal tifs", "error");
+          return; 
         }
-      } else { // it is locally available
-        // work with the local copy  
-      }
 
-      // if it is a tif it might have to be converted
-      if(strcasecmp($extension, "tif") === 0 || strcasecmp($extension, "tiff") === 0) {
-        $lookpath = str_replace('.' .$extension, '.jpg', $orig);
-        
-        if(file_exists($lookpath)) {
-          $orig = $lookpath;
-          $extension = "jpg";
-          
-        } else { // convert it
-          
-          $image = imageapi_image_open($orig);
-          
-          if ($image->info['mime_type'] && $image->toolkit == 'imageapi_imagemagick') {
+        global $base_url;
 
-            //get extension
-            $current_path = pathinfo($image->source);
-            $rsr = $image->source;
-            $ext = $current_path['extension'];
-
-            $destination = str_replace('.' . $ext, '.jpg', $image->source);
-            
-            // only convert the first image [0]
-            $command = escapeshellarg($rsr. '[0]') .' '. escapeshellarg($destination);
-            if (0 != _imageapi_imagemagick_convert_exec($command, $output, $errors)) {
-              return FALSE;
+        // if it is not there already, get it
+        if(!is_file($orig)) {
+          $localpath = str_replace($base_url . '/', "", $pic);
+          // it is not locally available
+          if(!realpath($localpath)) {
+            $fh = @fopen($pic, "rb");
+             
+            if($fh) {
+              $fw = fopen($orig, "w+");
+              while(!feof($fh)) {
+                fwrite($fw, fread($fh, 1024 * 8 ), 1024 * 8 );
+              }
+            } else {
+              drupal_set_message(t("The file $pic could not be found. Please check the URL."), "error");
+              continue;
             }
-              
-            $orig = $destination;
+
+          } else { // it is already there, just work with it!
+            $orig = $localpath;
+          }
+        } else { // it is locally available
+          // work with the local copy  
+        }
+
+        // if it is a tif it might have to be converted
+        if(strcasecmp($extension, "tif") === 0 || strcasecmp($extension, "tiff") === 0) {
+          $lookpath = str_replace('.' .$extension, '.jpg', $orig);
+          
+          if(file_exists($lookpath)) {
+            $orig = $lookpath;
             $extension = "jpg";
-          }
-        }
-
-        // we need wisski_iip for pyramidal view
-        if(module_exists("wisski_iip")) {
-          
-          // whenever we have tif, make a pyramidal tif.        
-          $pyrfile = $newname . '.tif';
-
-          $pyr = imagecache_create_path('wisski_pyramid', $pyrfile);
-        
-          // check if dir exists, otherwise create it!
-          $dir = dirname($pyr);
-          if (!file_check_directory($dir, FILE_CREATE_DIRECTORY) && !mkdir($dir, 0775, TRUE)) {
-            drupal_set_message("Could not provide directory for pyramidal tifs", "error");
-            return; 
-          }
-        
-          $preset_pyr = imagecache_preset_by_name('wisski_pyramid');
-
-          // only convert it, if we need it - otherwise we already have it!
-          if(!file_exists($pyr)) { 
+            
+          } else { // convert it
+            
             $image = imageapi_image_open($orig);
             
             if ($image->info['mime_type'] && $image->toolkit == 'imageapi_imagemagick') {
@@ -341,28 +337,76 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
               //get extension
               $current_path = pathinfo($image->source);
               $rsr = $image->source;
-              //$ext = $current_path['extension'];
-              global $base_path;
+              $ext = $current_path['extension'];
 
-              $destination = getcwd() . '/' . $pyr;
-            
+              $destination = str_replace('.' . $ext, '.jpg', $image->source);
+              
               // only convert the first image [0]
-              $command = escapeshellarg($rsr. '[0]') ." -define tiff:tile-geometry=256x256 -compress jpeg 'ptif:" . escapeshellarg($destination) . "'";
+              $command = escapeshellarg($rsr. '[0]') .' '. escapeshellarg($destination);
               if (0 != _imageapi_imagemagick_convert_exec($command, $output, $errors)) {
                 return FALSE;
               }
+                
+              $orig = $destination;
+              $extension = "jpg";
             }
           }
+
+          // we need wisski_iip for pyramidal view
+          if(module_exists("wisski_iip")) {
+            
+            // whenever we have tif, make a pyramidal tif.        
+            $pyrfile = $newname . '.tif';
+
+            $pyr = imagecache_create_path('wisski_pyramid', $pyrfile);
+          
+            // check if dir exists, otherwise create it!
+            $dir = dirname($pyr);
+            if (!file_check_directory($dir, FILE_CREATE_DIRECTORY) && !mkdir($dir, 0775, TRUE)) {
+              drupal_set_message("Could not provide directory for pyramidal tifs", "error");
+              return; 
+            }
+          
+            $preset_pyr = imagecache_preset_by_name('wisski_pyramid');
+
+            // only convert it, if we need it - otherwise we already have it!
+            if(!file_exists($pyr)) { 
+              $image = imageapi_image_open($orig);
+              
+              if ($image->info['mime_type'] && $image->toolkit == 'imageapi_imagemagick') {
+
+                //get extension
+                $current_path = pathinfo($image->source);
+                $rsr = $image->source;
+                //$ext = $current_path['extension'];
+                global $base_path;
+
+                $destination = getcwd() . '/' . $pyr;
+              
+                // only convert the first image [0]
+                $command = escapeshellarg($rsr. '[0]') ." -define tiff:tile-geometry=256x256 -compress jpeg 'ptif:" . escapeshellarg($destination) . "'";
+                if (0 != _imageapi_imagemagick_convert_exec($command, $output, $errors)) {
+                  return FALSE;
+                }
+              }
+            }
+
+            $pyr_url = getcwd() . '/' . $pyr;
+          }
+          
         }
-        
       }
       
       // now $orig should point to the original file
       $presetname = "wisski_thumbnail";      
       $preset = imagecache_preset_by_name($presetname);
-
-      $dst = imagecache_create_path($presetname, $newname . '.' . $extension);
       
+      $dst_extension = $extension;
+      if (!in_array($dst_extension, array('png', 'gif'))) {
+        $dst_extension = 'jpg';
+      }
+
+      $dst = imagecache_create_path($presetname, $newname . '.' . $dst_extension);
       $exif = "";
       if(user_access('wisski access exif') && variable_get('wisski_images_show_exif', FALSE)) {
         $exif = wisski_images_render_exifdata($pic);
@@ -376,23 +420,70 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
         $pics = getimagesize($pic, $info);
         $iptc = wisski_images_render_iptcdata($info);
       }
+      
+      // create a thumbnail if its not there
+      if (!is_file($dst)) {
+        //  imagecache will not scale images directly from web
+        // so we have to have it locally and then generate a thumbnail from it
+        $local_orig = $orig;
+        $delete_copy = FALSE;
+        // maybe its a local file path already
+        if (!is_file($local_orig)) {
+          // check if image lies on same web site => we can use relative path
+          $local_orig = str_replace($base_root . $base_path, "", $local_orig);
+          if (!is_file($local_orig)) {
+            // make a local copy
+              $local_orig = file_create_filename('/' . md5($orig) . '.' . $extension, file_directory_temp());
 
-      if (is_file($dst) || @imagecache_build_derivative($preset['actions'], $orig, $dst)) {
-        global $base_path;
-        if (is_file($orig)) {
-          if($force_download == 1) {
-            $imagestr .= '<li><div class="wisski-image-container"><a href="' . $base_path . $orig . '"><img src="' . $base_path . $dst . '"/></a></div>' . '<div class="wisski-image-subtitle">' . $subtitle . '</div>' . $exif . $iptc . '</li>';
-          } else if(!empty($pyr) && module_exists('wisski_iip')) {
-            $imagestr .=  '<li><div class="wisski-image-container"><a href="' . $base_url . '/node/' . arg(1) . '/zoom?path=' . rawurlencode(getcwd() . '/' . $pyr) . '"><img src="' . $base_path . $dst . '"/></a></div>' . '<div class="wisski-image-subtitle">' . $subtitle . '</div>' . $exif . $iptc . '</li>';
-          } else {
-            $imagestr .= '<li><div class="wisski-image-container"><a href="' . $base_path . $orig . '" class="wisski-image"><img src="' . $base_path . $dst . '"/></a></div>' . '<div class="wisski-image-subtitle">' . $subtitle . '</div>' . $exif . $iptc . '</li>';
-          }
-        } else {          
-          $imagestr .= '<li><div class="wisski-image-container"><a href="' . $base_path . $dst . '" class="wisski-image"><img src="' . $base_path . $dst . '"/></a></div>' . '<div class="wisski-image-subtitle">' . $subtitle . '</div>' . $exif . $iptc . '</li>';
+              $fh = @fopen($orig, "rb");
+              
+              if($fh) {
+                $fw = fopen($local_orig, "w+");
+                while(!feof($fh)) {
+                  fwrite($fw, fread($fh, 1024 * 8 ), 1024 * 8 );
+                }
+                $delete_copy = TRUE;
+              } else {
+                drupal_set_message(t("The file $orig could not be found. Please check the URL."), "error");
+                continue;
+              }
+            }
         }
+
+        $a = imagecache_build_derivative($preset['actions'], "$local_orig", $dst);
+        if (!$a) {
+          drupal_set_message("Could not derive thumbnail from $local_orig.");
+        }
+        
+        if ($delete_copy) file_delete($local_orig);
+
+      }
+      
+      $container_prefix = '';
+      $container_suffix = '';
+      if (variable_get('wisski_image_create_link', TRUE)) {
+        $link = $orig;
+        if (is_file($orig)) {
+          $link = $base_root . $base_path . $orig;
+        }
+        if($force_download == 1) {
+            $container_prefix = '<a href="' . $link . '">';
+        } else if (!empty($pyr) && module_exists('wisski_iip')) {
+          $container_prefix = '<a href="' . $base_root . $base_path . 'node/' . arg(1) . '/zoom?path=' . rawurlencode($pyr_url) . '">';
+        } else if (variable_get('wisski_iip_force_viewer', FALSE) && module_exists('wisski_iip') && strpos($link, $base_root) === 0) {
+          $link = substr($link, strlen($base_root));
+          $container_prefix = '<a href="' . $base_root . $base_path . 'node/' . arg(1) . '/zoom?path=' . rawurlencode($link) . '">';
+        } else {
+          $container_prefix = '<a href="' . $link . '" class="wisski-image">';
+        }
+        $container_suffix = '</a>';
+      }
+
+      if (is_file($dst)) {
+        $imagestr .= '<li><div class="wisski-image-container">' . $container_prefix . '<img src="' . $base_root . $base_path . $dst . '"/>' . $container_suffix . '</div><div class="wisski-image-subtitle">' . $subtitle . '</div>' . $exif . $iptc . '</li>';
       } else {
 	drupal_set_message("The image with URL " . $pic . " could not be downloaded. Probably the link is wrong.", "error");
-        $imagestr .= '<li><div class="wisski-image-container"><a href="' . $pic . '" class="wisski-image"><img src="' . $pic . '"/></a></div>' . '<div class="wisski-image-subtitle">' . $subtitle . '</div>' . $exif . $iptc . '</li>';
+        $imagestr .= '<li><div class="wisski-image-container">' . $container_prefix . '<img src="' . $pic . '"/>' . $container_suffix . '</div><div class="wisski-image-subtitle">' . $subtitle . '</div>' . $exif . $iptc . '</li>';
       }
     } else { // no imagecache?
 
@@ -792,7 +883,7 @@ function wisski_images_rescue_values($form, &$form_state) {
  * @author Mark Fichtner
  */
 function wisski_images_pb_fieldtypes() {
-  return array("images" => "images", "subtitle" => "subtitle");
+  return array("images" => "images", "subtitle" => "subtitle"/*, "image_thumb" => "image_thumb"*/);
 }
 
 /* This Function implements hook_pb_fieldtypes
@@ -816,6 +907,13 @@ function wisski_images_pb_fieldinformation($fieldtype) {
                  "display_type" => "textfield");
   }
   
+/*  if($fieldtype == "image_thumb") {
+    return array("edit_type"    => "single",
+                 "delete_empty" => FALSE,
+                 "add_button"   => FALSE,
+                 "display_type" => "textfield");
+  }
+*/  
   return array();
 
 }
