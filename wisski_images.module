@@ -83,7 +83,7 @@ function wisski_images_getImages($node, $images = 0) {
     return;
   
   global $base_url;
-  if(!strpos($base_url, $title))
+  if(strpos($base_url, $title) === FALSE)
     $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
 
   if($images)
