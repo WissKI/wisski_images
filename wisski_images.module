@@ -786,7 +786,6 @@ function wisski_imageprocessing($form, &$form_state) {
       }
     }
     
-    
     foreach($form_state['values']['files'] as $file) {
       if(preg_match('/(\.png|\.jpg|\.jpeg|\.gif|\.tif|\.tiff)$/i', $file['filename'])) {
         $already_there = FALSE;
@@ -812,15 +811,35 @@ function wisski_imageprocessing($form, &$form_state) {
           }
           
           $fs_pointer = &$form_state['values'];
-      
+
+          // duplicate groups!
           foreach($to_get_there[$imagegroup] as $go_to) {
-            if($multigroups[$go_to])
-              $fs_pointer = &$fs_pointer[$go_to][$go_to][$go_to . '_0'];
+            if($multigroups[$go_to]) {
+              
+              // clear undupl and weight data              
+              $cnt = wisski_pathbuilder_filter_undupl_button_data($fs_pointer[$go_to][$go_to]);
+              $cnt = wisski_pathbuilder_filter_weight_data($cnt);
+              $mgcount = count($cnt);
+              
+              $fs_pointer[$go_to][$go_to]['weight_' . $go_to . '_' . $mgcount] = "1000";
+              $fs_pointer = &$fs_pointer[$go_to][$go_to][$go_to . '_' . $mgcount];
+              
+            }
             else
               $fs_pointer = &$fs_pointer[$go_to][$go_to];
           }
 
-          $fs_pointer[$imagegroup . '_' . count($fs_pointer)] = file_create_url($file['filepath']);
+          // clear button data etc.
+          $cnt = wisski_pathbuilder_filter_auth_data($fs_pointer);
+          $cnt = wisski_pathbuilder_filter_weight_data($cnt);
+          $cnt = wisski_pathbuilder_filter_undupl_button_data($cnt);
+          $cnt = wisski_pathbuilder_filter_cls_button_data($cnt);
+          
+          $pointercnt = count($cnt);
+          
+          $fs_pointer[$imagegroup . '_' . $pointercnt] = file_create_url($file['filepath']);
+          $fs_pointer['weight_' . $imagegroup . '_' . $pointercnt] = "1000";
+          
         }
       }
     }
