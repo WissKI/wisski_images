@@ -99,10 +99,14 @@ function wisski_images_getImages($node, $images = 0) {
   if(empty($images_from_db)) {
     $images_from_db = _wisski_images_getImages($node);
     
-    if(!empty($images_from_db))
+    if(!empty($images_from_db)) {
       foreach($images_from_db as $pic) {
         db_query("INSERT INTO {wisski_image_cache} (nodeurl, subtitle, imageurl) VALUES ('" . mysql_real_escape_string($title) . "', '" . mysql_real_escape_string($pic['subtitle']) . "', '" . mysql_real_escape_string($pic['out']) . "')");
       }
+    } else {
+      db_query("INSERT INTO {wisski_image_cache} (nodeurl, subtitle, imageurl) VALUES ('" . mysql_real_escape_string($title) . "', '', '')");
+    }
+    
   
     if($images)
       $result = db_query("SELECT imageurl, subtitle FROM {wisski_image_cache} LEFT JOIN {wisski_weight} ON value = imageurl AND nodeurl = title WHERE nodeurl = '" . $title . "' GROUP BY imageurl ORDER BY weight ASC LIMIT $images");
