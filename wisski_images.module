@@ -267,10 +267,9 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
       // check if pyramidal imaging should be done
       $pyr = 0;
 
-      // in case of pdf force download, but the thumbnail has to be jpg
+      // in case of pdf force download, but the thumbnail has to be jpg - this is handled like a tif
       if($extension == "pdf") {
         $force_download = 1;
-        $extension = "jpg";
       }
       
       $make_local_copy = variable_get('wisski_images_make_local_copy', TRUE);
@@ -325,7 +324,7 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
         }
 
         // if it is a tif it might have to be converted
-        if(strcasecmp($extension, "tif") === 0 || strcasecmp($extension, "tiff") === 0) {
+        if(strcasecmp($extension, "tif") === 0 || strcasecmp($extension, "tiff") === 0 || strcasecmp($extension, "pdf") === 0) {
           $lookpath = str_replace('.' .$extension, '.jpg', $orig);
           
           if(file_exists($lookpath)) {
@@ -335,9 +334,9 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
           } else { // convert it
             
             $image = imageapi_image_open($orig);
-            
-            if ($image->info['mime_type'] && $image->toolkit == 'imageapi_imagemagick') {
-
+            // don't ask for the mime type
+            //if ($image->info['mime_type'] && $image->toolkit == 'imageapi_imagemagick') {
+            if ($image->toolkit == 'imageapi_imagemagick') {
               //get extension
               $current_path = pathinfo($image->source);
               $rsr = $image->source;
@@ -791,7 +790,7 @@ function wisski_imageprocessing($form, &$form_state) {
     }
     
     foreach($form_state['values']['files'] as $file) {
-      if(preg_match('/(\.png|\.jpg|\.jpeg|\.gif|\.tif|\.tiff)$/i', $file['filename'])) {
+      if(preg_match('/(\.png|\.jpg|\.jpeg|\.gif|\.tif|\.tiff|\.pdf)$/i', $file['filename'])) {
         $already_there = FALSE;
 
         // recursively search the image        
