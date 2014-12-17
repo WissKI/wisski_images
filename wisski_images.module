@@ -824,7 +824,7 @@ function wisski_imageprocessing($form, &$form_state) {
               $cnt = wisski_pathbuilder_filter_weight_data($cnt);
               $mgcount = count($cnt);
               
-              $fs_pointer[$go_to][$go_to]['weight_' . $go_to . '_' . $mgcount] = "1000";
+              $fs_pointer[$go_to][$go_to]['weight_' . $go_to . '_' . $mgcount] = 1000 + count($fs_pointer);
               $fs_pointer = &$fs_pointer[$go_to][$go_to][$go_to . '_' . $mgcount];
               
             }
@@ -841,7 +841,8 @@ function wisski_imageprocessing($form, &$form_state) {
           $pointercnt = count($cnt);
           
           $fs_pointer[$imagegroup . '_' . $pointercnt] = file_create_url($file['filepath']);
-          $fs_pointer['weight_' . $imagegroup . '_' . $pointercnt] = "1000";
+          // 1000 should be very bottom and if we add the total count there should be nobody beyond.
+          $fs_pointer['weight_' . $imagegroup . '_' . $pointercnt] = 1000 + count($fs_pointer);
           
         }
       }
