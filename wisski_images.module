@@ -758,7 +758,7 @@ function wisski_imageprocessing($form, &$form_state) {
     }
       
     if(count($imagegroups) <= 0) 
-      break;
+      return;
 
     // path to get to this object
     $to_get_there = array();
