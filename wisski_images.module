@@ -404,11 +404,12 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
       // now $orig should point to the original file
       $presetname = "wisski_thumbnail";      
       $preset = imagecache_preset_by_name($presetname);
-      
-      $dst_extension = $extension;
-      if (!in_array($dst_extension, array('png', 'gif'))) {
-        $dst_extension = 'jpg';
-      }
+
+      // why do that?!      
+#      $dst_extension = $extension;
+#      if (!in_array($dst_extension, array('png', 'gif'))) {
+      $dst_extension = 'jpg';
+#      }
 
       $dst = imagecache_create_path($presetname, $newname . '.' . $dst_extension);
       $exif = "";
@@ -913,7 +914,6 @@ function wisski_images_rescue_values($form, &$form_state) {
 
   $form_state['wisskiValues'] = $form_state['values'];
   
-//  drupal_set_message("rescued!");  
   if(empty($form_state['wisskiValues']['old_values'])) {
     $form_state['wisskiValues']['old_values'] = $form_state['values']['defaults'];
   }
