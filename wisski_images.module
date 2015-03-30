@@ -405,10 +405,9 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
       $presetname = "wisski_thumbnail";      
       $preset = imagecache_preset_by_name($presetname);
 
-      // why do that?!      
-#      $dst_extension = $extension;
+      // take the original extension to support png, gif etc.
+      $dst_extension = $extension;
 #      if (!in_array($dst_extension, array('png', 'gif'))) {
-      $dst_extension = 'jpg';
 #      }
 
       $dst = imagecache_create_path($presetname, $newname . '.' . $dst_extension);
