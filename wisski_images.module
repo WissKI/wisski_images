@@ -325,7 +325,11 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
 
         // if it is a tif it might have to be converted
         if(strcasecmp($extension, "tif") === 0 || strcasecmp($extension, "tiff") === 0 || strcasecmp($extension, "pdf") === 0) {
-          $lookpath = str_replace('.' .$extension, '.jpg', $orig);
+          
+          // this was evil... we don't use pregenerated jpgs anymore... so there
+          // are no in this location, they are always in wisski_thumbnail
+          // $lookpath = str_replace('.' .$extension, '.jpg', $orig);
+          $lookpath = imagecache_create_path('wisski_thumbnail', $newname . '.jpg');
           
           if(file_exists($lookpath)) {
 
@@ -344,13 +348,21 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
               $rsr = $image->source;
               $ext = $current_path['extension'];
 
-              $destination = str_replace('.' . $ext, '.jpg', $image->source);
+              // this is evil when the image may not be in a mounted read only image place
+              //$destination = str_replace('.' . $ext, '.jpg', $image->source);
+              $dstjpg = imagecache_create_path('wisski_thumbnail', $newname . '.jpg');
+              $destination =  getcwd() . '/' . $dstjpg;
               
               // only convert the first image [0]
               $command = escapeshellarg($rsr. '[0]') .' '. escapeshellarg($destination);
               if (0 != _imageapi_imagemagick_convert_exec($command, $output, $errors)) {
                 return FALSE;
               }
+              
+              $preset = imagecache_preset_by_name('wisski_thumbnail');
+              // do the drupal thingies after that. We can't do that immediatelly because we need to get [0]
+              imagecache_build_derivative($preset['actions'], $destination, $destination);
+              
               $orig = $destination;
               $extension = "jpg";
             }
