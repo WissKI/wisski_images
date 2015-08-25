@@ -350,8 +350,13 @@ function _wisski_images_make_image_string($node, $images, $pics = array()) {
 
               // this is evil when the image may not be in a mounted read only image place
               //$destination = str_replace('.' . $ext, '.jpg', $image->source);
-              $dstjpg = imagecache_create_path('wisski_thumbnail', $newname . '.jpg');
-              $destination =  getcwd() . '/' . $dstjpg;
+              $destination = imagecache_create_path('wisski_thumbnail', $newname . '.jpg');
+              $dir = dirname($destination);
+                            
+              if (!file_check_directory($dir, FILE_CREATE_DIRECTORY) && !mkdir($dir, 0775, TRUE)) {
+                drupal_set_message("Could not provide directory for thumbnails", "error");
+                return;
+              }
               
               // only convert the first image [0]
               $command = escapeshellarg($rsr. '[0]') .' '. escapeshellarg($destination);
